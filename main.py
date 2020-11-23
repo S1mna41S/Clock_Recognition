@@ -2,19 +2,24 @@ from os import path
 import cv2 as cv
 import numpy as np
 import math
+from matplotlib import pyplot as plt
 
 PICTURES_FOLD = 'Pictures'
 
-image = cv.imread(path.normpath(path.join(PICTURES_FOLD, 'probe_pic1.jpg')))
-image_size = image.shape[:2]
 
-imgCanny = cv.Canny(image, 200, 200)
-cdst = cv.cvtColor(imgCanny, cv.COLOR_GRAY2BGR)
+def get_path_to_picture(picture_name):
+    return path.normpath(path.join(PICTURES_FOLD, picture_name))
 
-lines = cv.HoughLines(imgCanny, 1, np.pi/180, 150, None, 0, 0)
 
+image = cv.imread(get_path_to_picture('probe_pic1.jpg'), cv.IMREAD_GRAYSCALE)
+rows, cols = image.shape
+
+sobel_horizontal = cv.Sobel(image, cv.CV_64F, 1, 0, ksize=5)
+sobel_vertical = cv.Sobel(image, cv.CV_64F, 0, 1, ksize=5)
 
 cv.imshow("Image", image)
-cv.imshow("Canny image", imgCanny)
+cv.imshow('Sobel horizontal', sobel_horizontal)
+cv.imshow('Sobel vertical', sobel_vertical)
+
 cv.waitKey(0)
 cv.destroyAllWindows()
