@@ -12,7 +12,7 @@ def get_path_to_picture(picture_name):
 
 
 def read_image(picture_name):
-    image = cv.imread(get_path_to_picture('2095-bigtimeclock_sh-4.jpg'))
+    image = cv.imread(get_path_to_picture('black-white-brandtworks-wall-clocks-ecc-050-64_1000.jpg'))
     image = cv.resize(image, (500, 500))
     rows, cols = image.shape[:2]
     img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
@@ -88,15 +88,51 @@ def binary_inverse(image):
     _, thresh1 = cv.threshold(image, 127, 255, cv.THRESH_BINARY)
     return thresh1
 
+
+def find_arrows(image):
+    max_len, longest_y = 0, 0
+    mask = np.zeros(image.shape, image.dtype)
+    for _ in range(image.shape[0]):
+        max_len, longest_y = 0, 0
+        for j, row in enumerate(image):
+            for i, pixel in enumerate(row):
+                if mask[j, i]:
+                    break
+                if pixel:
+                    if i > max_len:
+                        max_len = i
+                        longest_y = j
+                    break
+
+        print(f'{longest_y} - {max_len}')
+        for i, _ in enumerate(reversed(mask[longest_y][:max_len+1])):
+            mask[longest_y, i] = 255
+
+    return mask
+        # arrow_area = 1
+        # arrow_thick = 1
+        # tr_image = np.transpose(image)
+        # for i, row in enumerate(image[longest_y][:max_len]):
+        #     x_current = max_len - i - 1
+        #     for j, pixel in enumerate(tr_image[i]):
+
+
+
+
 if __name__ == "__main__":
     image, rows, cols = read_image('probe_pic1.jpg')
     # find_boundaries(image, rows, cols)
     polar_image = varp_polar(image)
     wb_image = binary_inverse(polar_image)
 
+    mask = find_arrows(wb_image)
+
     cv.imshow("Image", image)
-    cv.imshow("Polar Image", polar_image)
+    # cv.imshow("Polar Image", polar_image)
     cv.imshow("W/B", wb_image)
+
+    cv.imshow("Arrows", mask)
+
 
     cv.waitKey(0)
     cv.destroyAllWindows()
