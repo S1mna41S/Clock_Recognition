@@ -12,11 +12,11 @@ def get_path_to_picture(picture_name):
 
 
 def read_image(picture_name):
-    image = cv.imread(get_path_to_picture('black-white-brandtworks-wall-clocks-ecc-050-64_1000.jpg'))
+    image = cv.imread(get_path_to_picture(picture_name))
     image = cv.resize(image, (500, 500))
     rows, cols = image.shape[:2]
     img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-    return img, rows, cols
+    return image, img, rows, cols
 
 
 def varp_polar(img):
@@ -89,50 +89,95 @@ def binary_inverse(image):
     return thresh1
 
 
-def find_arrows(image):
-    max_len, longest_y = 0, 0
+def _neighbors_are_empty(image, rows, j, i):
+    if 0 < j < rows - 1 and image[j - 1, i] and image[j - 1, i + 1] and image[j, i + 1] and image[j + 1, i] \
+            and image[j + 1, i + 1]:
+        return True
+    elif j == 0 and image[j, i + 1] and image[j + 1, i] and image[j + 1, i + 1]:
+        return True
+    elif image[j - 1, i] and image[j - 1, i + 1] and image[j, i + 1]:
+        return True
+    else:
+        return False
+
+
+def _print_column(picture, column, color):
+    for row in picture:
+        row[column] = color
+
+
+def find_arrows(image, rows):
     mask = np.zeros(image.shape, image.dtype)
+    mean_height_1 = 0
+    list_heights = [0] * rows
     for _ in range(image.shape[0]):
         max_len, longest_y = 0, 0
         for j, row in enumerate(image):
             for i, pixel in enumerate(row):
                 if mask[j, i]:
                     break
-                if pixel:
+                if pixel and _neighbors_are_empty(image, rows, j, i):
                     if i > max_len:
                         max_len = i
                         longest_y = j
                     break
 
-        print(f'{longest_y} - {max_len}')
-        for i, _ in enumerate(reversed(mask[longest_y][:max_len+1])):
+        # print(f'{longest_y} - {max_len}')
+        mean_height_1 += max_len
+        list_heights[longest_y] = max_len
+        for i, _ in enumerate(reversed(mask[longest_y][:max_len + 1])):
             mask[longest_y, i] = 255
 
-    return mask
-        # arrow_area = 1
-        # arrow_thick = 1
-        # tr_image = np.transpose(image)
-        # for i, row in enumerate(image[longest_y][:max_len]):
-        #     x_current = max_len - i - 1
-        #     for j, pixel in enumerate(tr_image[i]):
+    mean_height_1 = int(mean_height_1 / rows)
+    _print_column(mask, mean_height_1, 120)
+
+    mean_height_2, upper_mean_count = 0, 0
+    for i in list_heights:
+        if i > mean_height_1:
+            mean_height_2 += i
+            upper_mean_count += 1
+    mean_height_2 = int(mean_height_2 / upper_mean_count)
+    _print_column(mask, mean_height_2, 170)
+
+    flag = False
+    intervals = {}
+    i = 0
+    area = 0
+    for row_num, row_hight in enumerate(list_heights):
+        if row_hight > mean_height_2:
+            if not flag:
+                flag = True
+                i = row_num
+            area += row_hight - mean_height_2
+        elif flag:
+            flag = False
+            intervals[(i, row_num)] = area
+            area = 0
 
 
+    return mask, intervals
+    # arrow_area = 1
+    # arrow_thick = 1
+    # tr_image = np.transpose(image)
+    # for i, row in enumerate(image[longest_y][:max_len]):
+    #     x_current = max_len - i - 1
+    #     for j, pixel in enumerate(tr_image[i]):
 
 
 if __name__ == "__main__":
-    image, rows, cols = read_image('probe_pic1.jpg')
+    color_image, image, rows, cols = read_image('4georgjensen_henning_koppel_black_30_ma.jpg')
     # find_boundaries(image, rows, cols)
     polar_image = varp_polar(image)
     wb_image = binary_inverse(polar_image)
 
-    mask = find_arrows(wb_image)
+    mask, intervals = find_arrows(wb_image, rows)
 
-    cv.imshow("Image", image)
+    cv.imshow("Image", color_image)
     # cv.imshow("Polar Image", polar_image)
     cv.imshow("W/B", wb_image)
 
     cv.imshow("Arrows", mask)
-
+    print(intervals)
 
     cv.waitKey(0)
     cv.destroyAllWindows()
