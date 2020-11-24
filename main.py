@@ -13,8 +13,21 @@ def get_path_to_picture(picture_name):
 
 def read_image(picture_name):
     image = cv.imread(get_path_to_picture(picture_name))
-    image = cv.resize(image, (500, 500))
     rows, cols = image.shape[:2]
+    if rows != cols:
+        diff = abs(rows - cols)
+        if rows > cols:
+            image = image[diff // 2:-diff // 2, 0:cols]
+            rows -= diff
+        else:
+            image = image[0:rows, diff // 2:-diff // 2]
+            cols -= diff
+
+    max_size = 720
+    if rows > max_size:
+        image = cv.resize(image, (max_size, max_size))
+        rows = max_size
+        cols = max_size
     img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     return image, img, rows, cols
 
@@ -24,65 +37,6 @@ def varp_polar(img):
     polar_image = cv.linearPolar(img, (img.shape[0] / 2, img.shape[1] / 2), value, cv.WARP_FILL_OUTLIERS)
     return polar_image.astype(np.uint8)
 
-
-# def find_boundaries(img):
-#     ret, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
-#     # noise removal
-#     kernel = np.ones((3, 3), np.uint8)
-#     opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel, iterations=2)
-#
-#     # sure background area
-#     sure_bg = cv.dilate(opening, kernel, iterations=3)
-#
-#     # Finding sure foreground area
-#     dist_transform = cv.distanceTransform(opening, cv.DIST_L2, 5)
-#     ret, sure_fg = cv.threshold(dist_transform, 0.7 * dist_transform.max(), 255, 0)
-#
-#     # Finding unknown region
-#     sure_fg = np.uint8(sure_fg)
-#     unknown = cv.subtract(sure_bg, sure_fg)
-#
-#     # Marker labelling
-#     ret, markers = cv.connectedComponents(sure_fg)
-#
-#     # Add one to all labels so that sure background is not 0, but 1
-#     markers = markers + 1
-#
-#     # Now, mark the region of unknown with zero
-#     markers[unknown == 255] = 0
-#
-#     h, w = markers.shape
-#     markers = cv.CreateMat(h, w, cv.CV_32SC1)
-#     h, w = img.shape
-#     img = cv.CreateMat(h, w, cv.CV_8UC3)
-#
-#     markers = cv.watershed(img, markers)
-#     img[markers == -1] = [255, 0, 0]
-
-# def find_boundaries(img, rows, cols):
-#     ## medianBlur, threshold and morph-close-op
-#     median = cv.medianBlur(img, ksize=17)
-#     retval, threshed = cv.threshold(median, 110, 255, cv.THRESH_BINARY_INV)
-#     closed = cv.morphologyEx(threshed, cv.MORPH_CLOSE, np.ones(shape=(15, 15)))
-#
-#     ## Project to the axis
-#     xx = np.sum(closed, axis=0) / rows
-#     yy = np.sum(closed, axis=1) / cols
-#
-#     ## Threshold and find the nozero
-#     xx[xx < 60] = 0
-#     yy[yy < 100] = 0
-#
-#     ixx = xx.nonzero()
-#     iyy = yy.nonzero()
-#     x1, x2 = ixx[0][0], ixx[0][-1]
-#     y1, y2 = iyy[0][0], iyy[0][-1]
-#
-#     ## label on the original image and save it.
-#     res1 = cv.rectangle(img.copy(), (x1, y1), (x2, y2), (0, 0, 255), 2)
-#     res2 = img[y1:y2, x1:x2]
-#     cv.imwrite("result1.png", res1)
-#     cv.imwrite("result2.png", res2)
 
 def binary_inverse(image):
     _, thresh1 = cv.threshold(image, 127, 255, cv.THRESH_BINARY)
@@ -154,18 +108,29 @@ def find_arrows(image, rows):
             intervals[(i, row_num)] = area
             area = 0
 
-
     return mask, intervals
-    # arrow_area = 1
-    # arrow_thick = 1
-    # tr_image = np.transpose(image)
-    # for i, row in enumerate(image[longest_y][:max_len]):
-    #     x_current = max_len - i - 1
-    #     for j, pixel in enumerate(tr_image[i]):
+
+
+def what_time_is_this_interval(interval, rows):
+    first, second = interval[0]
+    mean = (first + second) / 2
+    time = (((mean / rows) * 12) + 3) % 12
+    return time
+
+
+def what_time_is_it(first, second):
+    first_rel = first / 12
+    second_rel = second / 12
+    first_cuted = abs(first - int(first))
+    second_cuted = abs(second - int(second))
+    if abs(first_rel - second_cuted) < abs(second_rel - first_cuted):
+        print(f'It\'s {int(second)} chours {int(first_rel * 60)} minutes')
+    else:
+        print(f'It\'s {int(first)} chours {int(second_rel * 60)} minutes')
 
 
 if __name__ == "__main__":
-    color_image, image, rows, cols = read_image('4georgjensen_henning_koppel_black_30_ma.jpg')
+    color_image, image, rows, cols = read_image('45cm+Matte+Black+Fenton+Wall+Clock.jpg')
     # find_boundaries(image, rows, cols)
     polar_image = varp_polar(image)
     wb_image = binary_inverse(polar_image)
@@ -173,11 +138,25 @@ if __name__ == "__main__":
     mask, intervals = find_arrows(wb_image, rows)
 
     cv.imshow("Image", color_image)
-    # cv.imshow("Polar Image", polar_image)
-    cv.imshow("W/B", wb_image)
 
-    cv.imshow("Arrows", mask)
+    # cv.imshow("Polar Image", polar_image)
+    # cv.imshow("W/B", wb_image)
+    # cv.imshow("Arrows", mask)
+
     print(intervals)
+    intervals_list = list(intervals.items())
+    intervals_list.sort(key=lambda i: -i[1])
+    if len(intervals_list) >= 2:
+        intervals_list_cut = intervals_list[:2]
+    else:
+        intervals_list_cut = intervals_list
+    print(intervals_list_cut)
+    time = []
+    for interval in intervals_list_cut:
+        time.append(what_time_is_this_interval(interval, rows))
+    print(time)
+
+    what_time_is_it(time[0], time[1])
 
     cv.waitKey(0)
     cv.destroyAllWindows()
