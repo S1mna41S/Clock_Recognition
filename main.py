@@ -1,18 +1,17 @@
 from os import path
 import cv2 as cv
 import numpy as np
-import math
-from matplotlib import pyplot as plt
+import argparse
 
 PICTURES_FOLD = 'Pictures'
-DEBUG = False
+DEBUG = True
 
 
 def get_path_to_picture(picture_name):
     return path.normpath(path.join(PICTURES_FOLD, picture_name))
 
 
-def read_image(picture_name):
+def read_image(picture_name='probe_pic2.jpg'):
     image = cv.imread(get_path_to_picture(picture_name))
     rows, cols = image.shape[:2]
     if rows != cols:
@@ -45,6 +44,8 @@ def binary_inverse(image):
 
 
 def _neighbors_are_empty(image, rows, j, i):
+    if i == rows - 1:
+        return True
     if 0 < j < rows - 1 and image[j - 1, i] and image[j - 1, i + 1] and image[j, i + 1] and image[j + 1, i] \
             and image[j + 1, i + 1]:
         return True
@@ -76,7 +77,8 @@ def find_arrows(image, rows):
                         max_len = i
                         longest_y = j
                     break
-        print(f'{longest_y}/{rows} - {max_len}')
+        if DEBUG:
+            print(f'{longest_y}/{rows} - {max_len}')
         mean_height_1 += max_len
         list_heights[longest_y] = max_len
         for i, _ in enumerate(reversed(mask[longest_y][:max_len + 1])):
@@ -132,10 +134,20 @@ def what_time_is_it(first, second):
 
 
 if __name__ == "__main__":
-    color_image, image, rows, cols = read_image('images.jpg')
+    if not DEBUG:
+        print('Читаю картинку...')
+    color_image, image, rows, cols = read_image(picture_name='F8111833-01.jpg')
+
+    if not DEBUG:
+        print('Разворачиваю...')
     polar_image = varp_polar(image)
+
+    if not DEBUG:
+        print('Произвожу бинаризацию...')
     wb_image = binary_inverse(polar_image)
 
+    if not DEBUG:
+        print('Ищу стрелки...')
     mask, intervals = find_arrows(wb_image, rows)
 
     cv.imshow("Image", color_image)
