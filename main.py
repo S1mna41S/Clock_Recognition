@@ -5,6 +5,7 @@ import math
 from matplotlib import pyplot as plt
 
 PICTURES_FOLD = 'Pictures'
+DEBUG = True
 
 
 def get_path_to_picture(picture_name):
@@ -75,8 +76,7 @@ def find_arrows(image, rows):
                         max_len = i
                         longest_y = j
                     break
-
-        # print(f'{longest_y} - {max_len}')
+        print(f'{longest_y}/{rows} - {max_len}')
         mean_height_1 += max_len
         list_heights[longest_y] = max_len
         for i, _ in enumerate(reversed(mask[longest_y][:max_len + 1])):
@@ -107,6 +107,8 @@ def find_arrows(image, rows):
             flag = False
             intervals[(i, row_num)] = area
             area = 0
+    if flag:
+        intervals[(i, rows)] = area
 
     return mask, intervals
 
@@ -130,8 +132,7 @@ def what_time_is_it(first, second):
 
 
 if __name__ == "__main__":
-    color_image, image, rows, cols = read_image('45cm+Matte+Black+Fenton+Wall+Clock.jpg')
-    # find_boundaries(image, rows, cols)
+    color_image, image, rows, cols = read_image('images.jpg')
     polar_image = varp_polar(image)
     wb_image = binary_inverse(polar_image)
 
@@ -139,22 +140,26 @@ if __name__ == "__main__":
 
     cv.imshow("Image", color_image)
 
-    # cv.imshow("Polar Image", polar_image)
-    # cv.imshow("W/B", wb_image)
-    # cv.imshow("Arrows", mask)
+    if DEBUG:
+        cv.imshow("Polar Image", polar_image)
+        cv.imshow("W/B", wb_image)
+        cv.imshow("Arrows", mask)
 
-    print(intervals)
+    if DEBUG:
+        print(intervals)
     intervals_list = list(intervals.items())
     intervals_list.sort(key=lambda i: -i[1])
     if len(intervals_list) >= 2:
         intervals_list_cut = intervals_list[:2]
     else:
         intervals_list_cut = intervals_list
-    print(intervals_list_cut)
+    if DEBUG:
+        print(intervals_list_cut)
     time = []
     for interval in intervals_list_cut:
         time.append(what_time_is_this_interval(interval, rows))
-    print(time)
+    if DEBUG:
+        print(time)
 
     what_time_is_it(time[0], time[1])
 
