@@ -5,7 +5,7 @@ import math
 from matplotlib import pyplot as plt
 
 PICTURES_FOLD = 'Pictures'
-DEBUG = True
+DEBUG = False
 
 
 def get_path_to_picture(picture_name):
@@ -126,9 +126,9 @@ def what_time_is_it(first, second):
     first_cuted = abs(first - int(first))
     second_cuted = abs(second - int(second))
     if abs(first_rel - second_cuted) < abs(second_rel - first_cuted):
-        print(f'It\'s {int(second)} chours {int(first_rel * 60)} minutes')
+        print(f'It\'s {int(second)} chours {round(first_rel * 60)} minutes')
     else:
-        print(f'It\'s {int(first)} chours {int(second_rel * 60)} minutes')
+        print(f'It\'s {int(first)} chours {round(second_rel * 60)} minutes')
 
 
 if __name__ == "__main__":
