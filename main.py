@@ -11,7 +11,7 @@ def get_path_to_picture(picture_name):
     return path.normpath(path.join(PICTURES_FOLD, picture_name))
 
 
-def read_image(picture_name='probe_pic2.jpg'):
+def read_image(picture_name):
     image = cv.imread(get_path_to_picture(picture_name))
     rows, cols = image.shape[:2]
     if rows != cols:
@@ -66,23 +66,19 @@ def find_arrows(image, rows):
     mask = np.zeros(image.shape, image.dtype)
     mean_height_1 = 0
     list_heights = [0] * rows
-    for _ in range(image.shape[0]):
-        max_len, longest_y = 0, 0
-        for j, row in enumerate(image):
-            for i, pixel in enumerate(row):
-                if mask[j, i]:
-                    break
-                if pixel and _neighbors_are_empty(image, rows, j, i):
-                    if i > max_len:
-                        max_len = i
-                        longest_y = j
-                    break
+    current_len, longest_y = 0, 0
+    for j, row in enumerate(image):
+        for i, pixel in enumerate(row):
+            if pixel and _neighbors_are_empty(image, rows, j, i):
+                current_len = i
+                longest_y = j
+                break
         if DEBUG:
-            print(f'{longest_y}/{rows} - {max_len}')
-        mean_height_1 += max_len
-        list_heights[longest_y] = max_len
-        for i, _ in enumerate(reversed(mask[longest_y][:max_len + 1])):
-            mask[longest_y, i] = 255
+            print(f'{j}/{rows} - {current_len}')
+        mean_height_1 += current_len
+        list_heights[j] = current_len
+        for i1, _ in enumerate(reversed(mask[j][:current_len + 1])):
+            mask[j, i1] = 255
 
     mean_height_1 = int(mean_height_1 / rows)
     _print_column(mask, mean_height_1, 120)
@@ -127,7 +123,9 @@ def what_time_is_it(first, second):
     second_rel = second / 12
     first_cuted = abs(first - int(first))
     second_cuted = abs(second - int(second))
-    if abs(first_rel - second_cuted) < abs(second_rel - first_cuted):
+    first_is_hour = second_rel - first_cuted
+    second_is_hour = first_rel - second_cuted
+    if abs(second_is_hour) < abs(first_is_hour):
         print(f'It\'s {int(second)} chours {round(first_rel * 60)} minutes')
     else:
         print(f'It\'s {int(first)} chours {round(second_rel * 60)} minutes')
@@ -136,15 +134,19 @@ def what_time_is_it(first, second):
 if __name__ == "__main__":
     if not DEBUG:
         print('Читаю картинку...')
-    color_image, image, rows, cols = read_image(picture_name='F8111833-01.jpg')
+    color_image, image, rows, cols = read_image(picture_name='VIaYFnij6yY.jpg')
 
     if not DEBUG:
         print('Разворачиваю...')
     polar_image = varp_polar(image)
+    if DEBUG:
+        cv.imshow("Polar Image", polar_image)
 
     if not DEBUG:
         print('Произвожу бинаризацию...')
     wb_image = binary_inverse(polar_image)
+    if DEBUG:
+        cv.imshow("W/B", wb_image)
 
     if not DEBUG:
         print('Ищу стрелки...')
@@ -153,8 +155,6 @@ if __name__ == "__main__":
     cv.imshow("Image", color_image)
 
     if DEBUG:
-        cv.imshow("Polar Image", polar_image)
-        cv.imshow("W/B", wb_image)
         cv.imshow("Arrows", mask)
 
     if DEBUG:
