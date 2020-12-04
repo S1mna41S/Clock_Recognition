@@ -43,15 +43,15 @@ def binary_inverse(image):
     return thresh1
 
 
-def _neighbors_are_empty(image, rows, j, i):
+def _neighbors_are_empty(image, rows, j, i, crutch):
     if i == rows - 1:
         return True
-    if 0 < j < rows - 1 and image[j - 1, i] and image[j - 1, i + 1] and image[j, i + 1] and image[j + 1, i] \
-            and image[j + 1, i + 1]:
+    if 0 < j < rows - 1 and image[j - 1, i] == image[j - 1, i + 1] == image[j, i + 1] ==\
+            image[j + 1, i] == image[j + 1, i + 1] != crutch:
         return True
-    elif j == 0 and image[j, i + 1] and image[j + 1, i] and image[j + 1, i + 1]:
+    elif j == 0 and image[j, i + 1] == image[j + 1, i] == image[j + 1, i + 1] != crutch:
         return True
-    elif image[j - 1, i] and image[j - 1, i + 1] and image[j, i + 1]:
+    elif image[j - 1, i] and image[j - 1, i + 1] == image[j, i + 1] != crutch:
         return True
     else:
         return False
@@ -64,12 +64,13 @@ def _print_column(picture, column, color):
 
 def find_arrows(image, rows):
     mask = np.zeros(image.shape, image.dtype)
+    crutch = image[0, 0]
     mean_height_1 = 0
     list_heights = [0] * rows
     current_len, longest_y = 0, 0
     for j, row in enumerate(image):
         for i, pixel in enumerate(row):
-            if pixel and _neighbors_are_empty(image, rows, j, i):
+            if pixel != crutch and _neighbors_are_empty(image, rows, j, i, crutch):
                 current_len = i
                 longest_y = j
                 break
@@ -134,7 +135,7 @@ def what_time_is_it(first, second):
 if __name__ == "__main__":
     if not DEBUG:
         print('Читаю картинку...')
-    color_image, image, rows, cols = read_image(picture_name='VIaYFnij6yY.jpg')
+    color_image, image, rows, cols = read_image(picture_name='9 (1).jpg')
 
     if not DEBUG:
         print('Разворачиваю...')
